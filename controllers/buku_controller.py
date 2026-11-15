@@ -7,70 +7,56 @@ from views.buku_view import BukuView
 
 class BukuController:
 
-    def __init__(self, user_role):
+    def __init__(self, user_role, master, on_logout):
 
-        # =====================================
-        # INISIALISASI MODEL DAN VIEW
-        # =====================================
-
+        # Informasi pengguna
         self.user_role = user_role.lower()
+        self.on_logout = on_logout
 
+        # Inisialisasi Model dan View
         self.model = BukuModel()
-        self.view = BukuView()
+        self.view = BukuView(master)
 
-        # Menyimpan ID buku yang dipilih
         self.id_buku_terpilih = None
 
-        # Mengatur judul aplikasi sesuai role
+        # Judul berdasarkan role
         self.view.title(
-            f"Sistem Manajemen Perpustakaan - Mode: {self.user_role.upper()}"
+            f"Sistem Manajemen Perpustakaan - Mode: "
+            f"{self.user_role.upper()}"
+        )
+
+        # Menghubungkan tombol Logout
+        self.view.btn_logout.configure(
+            command=self.logout
+        )
+
+        # Tombol X menjalankan proses Logout
+        self.view.protocol(
+            "WM_DELETE_WINDOW",
+            self.logout
         )
 
         # =====================================
-        # PENGATURAN HAK AKSES PENGGUNA
+        # PENGATURAN HAK AKSES
         # =====================================
 
         if self.user_role == "admin":
 
-            # Admin memiliki akses penuh
             self.view.btn_simpan.configure(
-                state="normal"
-            )
-
-            self.view.btn_update.configure(
-                state="normal"
-            )
-
-            self.view.btn_hapus.configure(
-                state="normal"
-            )
-
-            self.view.entry_judul.configure(
-                state="normal"
-            )
-
-            self.view.entry_penulis.configure(
-                state="normal"
-            )
-
-            self.view.entry_tahun.configure(
-                state="normal"
-            )
-
-            # Menghubungkan tombol CRUD
-            self.view.btn_simpan.configure(
+                state="normal",
                 command=self.simpan_data
             )
 
             self.view.btn_update.configure(
+                state="normal",
                 command=self.update_data
             )
 
             self.view.btn_hapus.configure(
+                state="normal",
                 command=self.hapus_data
             )
 
-            # Menghubungkan pemilihan baris tabel
             self.view.tabel.bind(
                 "<<TreeviewSelect>>",
                 self.pilih_buku
@@ -78,40 +64,24 @@ class BukuController:
 
         elif self.user_role == "anggota":
 
-            # Anggota hanya dapat melihat data
-            self.view.btn_simpan.configure(
-                state="disabled"
-            )
+            # Anggota hanya dapat membaca data
+            self.view.btn_simpan.configure(state="disabled")
+            self.view.btn_update.configure(state="disabled")
+            self.view.btn_hapus.configure(state="disabled")
 
-            self.view.btn_update.configure(
-                state="disabled"
-            )
-
-            self.view.btn_hapus.configure(
-                state="disabled"
-            )
-
-            self.view.entry_judul.configure(
-                state="disabled"
-            )
-
-            self.view.entry_penulis.configure(
-                state="disabled"
-            )
-
-            self.view.entry_tahun.configure(
-                state="disabled"
-            )
+            self.view.entry_judul.configure(state="disabled")
+            self.view.entry_penulis.configure(state="disabled")
+            self.view.entry_tahun.configure(state="disabled")
 
         else:
-
+            self.view.destroy()
             raise ValueError("Role pengguna tidak valid!")
 
-        # Memuat data ketika aplikasi dibuka
+        # Memuat data buku
         self.muat_data_tabel()
 
     # =====================================
-    # PEMERIKSAAN HAK AKSES
+    # CEK HAK AKSES
     # =====================================
 
     def cek_hak_akses(self):
@@ -120,7 +90,7 @@ class BukuController:
 
             messagebox.showwarning(
                 "Akses Ditolak",
-                "Anda tidak memiliki izin untuk mengelola data buku!",
+                "Anda tidak memiliki izin mengelola data buku!",
                 parent=self.view
             )
 
@@ -129,18 +99,17 @@ class BukuController:
         return True
 
     # =====================================
-    # MENAMPILKAN DATA BUKU
+    # MEMUAT DATA BUKU
     # =====================================
 
     def muat_data_tabel(self):
 
         try:
-
-            # Mengosongkan isi tabel
+            # Membersihkan tabel
             for item in self.view.tabel.get_children():
                 self.view.tabel.delete(item)
 
-            # Mengambil data buku aktif dari Model
+            # Mengambil buku aktif dari Model
             data_buku = self.model.get_all_buku()
 
             # Memasukkan data ke tabel
@@ -166,12 +135,11 @@ class BukuController:
             )
 
     # =====================================
-    # MEMILIH DATA BUKU
+    # MEMILIH BUKU
     # =====================================
 
     def pilih_buku(self, event=None):
 
-        # Hanya Admin yang dapat memilih data
         if not self.cek_hak_akses():
             return
 
@@ -180,27 +148,16 @@ class BukuController:
         if not selected:
             return
 
-        # Mengambil nilai dari baris tabel
         values = self.view.tabel.item(
             selected[0],
             "values"
         )
 
-        # Menyimpan ID buku yang dipilih
         self.id_buku_terpilih = int(values[0])
 
-        # Memasukkan data ke form
-        self.view.entry_judul.set_value(
-            values[1]
-        )
-
-        self.view.entry_penulis.set_value(
-            values[2]
-        )
-
-        self.view.entry_tahun.set_value(
-            values[3]
-        )
+        self.view.entry_judul.set_value(values[1])
+        self.view.entry_penulis.set_value(values[2])
+        self.view.entry_tahun.set_value(values[3])
 
     # =====================================
     # MEMBERSIHKAN FORM
@@ -208,36 +165,27 @@ class BukuController:
 
     def bersihkan_form(self):
 
-        # Mengembalikan input ke placeholder
+        self.id_buku_terpilih = None
+
         self.view.entry_judul.set_value("")
-
         self.view.entry_penulis.set_value("")
-
         self.view.entry_tahun.set_value("")
 
-        # Menghapus pilihan tabel
         selected = self.view.tabel.selection()
 
         if selected:
             self.view.tabel.selection_remove(*selected)
 
-        # Menghapus ID terpilih
-        self.id_buku_terpilih = None
-
     # =====================================
-    # VALIDASI INPUT
+    # VALIDASI FORM
     # =====================================
 
     def ambil_input(self):
 
-        # Mengambil data dari form
         judul = self.view.entry_judul.get().strip()
-
         pengarang = self.view.entry_penulis.get().strip()
-
         tahun = self.view.entry_tahun.get().strip()
 
-        # Validasi form kosong
         if not judul or not pengarang or not tahun:
 
             messagebox.showwarning(
@@ -248,7 +196,6 @@ class BukuController:
 
             return None
 
-        # Validasi tahun
         if not tahun.isdigit():
 
             messagebox.showwarning(
@@ -262,16 +209,14 @@ class BukuController:
         return judul, pengarang, tahun
 
     # =====================================
-    # MENYIMPAN DATA BUKU
+    # SIMPAN DATA BUKU
     # =====================================
 
     def simpan_data(self):
 
-        # Pemeriksaan hak akses
         if not self.cek_hak_akses():
             return
 
-        # Mengambil dan memvalidasi input
         data = self.ambil_input()
 
         if data is None:
@@ -280,9 +225,6 @@ class BukuController:
         judul, pengarang, tahun = data
 
         try:
-
-            # Penerbit tetap disimpan di database
-            # meskipun tidak ditampilkan pada GUI
             berhasil = self.model.create_buku(
                 judul,
                 pengarang,
@@ -293,7 +235,6 @@ class BukuController:
             if berhasil:
 
                 self.muat_data_tabel()
-
                 self.bersihkan_form()
 
                 messagebox.showinfo(
@@ -314,32 +255,29 @@ class BukuController:
 
             messagebox.showerror(
                 "Error",
-                f"Gagal menyimpan data:\n{e}",
+                str(e),
                 parent=self.view
             )
 
     # =====================================
-    # MEMPERBARUI DATA BUKU
+    # UPDATE DATA BUKU
     # =====================================
 
     def update_data(self):
 
-        # Pemeriksaan hak akses
         if not self.cek_hak_akses():
             return
 
-        # Memeriksa pilihan buku
         if self.id_buku_terpilih is None:
 
             messagebox.showwarning(
                 "Peringatan",
-                "Pilih data buku yang ingin diperbarui!",
+                "Pilih buku yang ingin diperbarui!",
                 parent=self.view
             )
 
             return
 
-        # Mengambil input
         data = self.ambil_input()
 
         if data is None:
@@ -348,7 +286,6 @@ class BukuController:
         judul, pengarang, tahun = data
 
         try:
-
             berhasil = self.model.update_buku(
                 self.id_buku_terpilih,
                 judul,
@@ -359,7 +296,6 @@ class BukuController:
             if berhasil:
 
                 self.muat_data_tabel()
-
                 self.bersihkan_form()
 
                 messagebox.showinfo(
@@ -380,35 +316,31 @@ class BukuController:
 
             messagebox.showerror(
                 "Error",
-                f"Gagal memperbarui data:\n{e}",
+                str(e),
                 parent=self.view
             )
 
     # =====================================
-    # MENGHAPUS DATA BUKU (SOFT DELETE)
+    # DELETE DATA BUKU
     # =====================================
 
     def hapus_data(self):
 
-        # Pemeriksaan hak akses
         if not self.cek_hak_akses():
             return
 
-        # Memeriksa pilihan buku
         if self.id_buku_terpilih is None:
 
             messagebox.showwarning(
                 "Peringatan",
-                "Pilih data buku yang ingin dihapus!",
+                "Pilih buku yang ingin dihapus!",
                 parent=self.view
             )
 
             return
 
-        # Menyimpan ID buku sebelum dihapus
         id_dihapus = self.id_buku_terpilih
 
-        # Konfirmasi penghapusan
         konfirmasi = messagebox.askyesno(
             "Konfirmasi",
             f"Apakah Anda yakin ingin menghapus buku ID {id_dihapus}?",
@@ -419,18 +351,11 @@ class BukuController:
             return
 
         try:
-
-            # Menghapus melalui Model
-            berhasil = self.model.delete_buku(
-                id_dihapus
-            )
+            berhasil = self.model.delete_buku(id_dihapus)
 
             if berhasil:
 
-                # Memperbarui tabel
                 self.muat_data_tabel()
-
-                # Membersihkan form
                 self.bersihkan_form()
 
                 messagebox.showinfo(
@@ -456,9 +381,23 @@ class BukuController:
             )
 
     # =====================================
-    # MENJALANKAN APLIKASI
+    # LOGOUT
     # =====================================
 
-    def run(self):
+    def logout(self):
 
-        self.view.mainloop()
+        konfirmasi = messagebox.askyesno(
+            "Konfirmasi Logout",
+            "Apakah Anda yakin ingin keluar dari akun ini?",
+            parent=self.view
+        )
+
+        if not konfirmasi:
+            return
+
+        # Tutup jendela aplikasi buku
+        self.view.destroy()
+
+        # Kembali ke halaman login
+        if self.on_logout:
+            self.on_logout()

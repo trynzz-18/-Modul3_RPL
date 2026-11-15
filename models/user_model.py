@@ -1,6 +1,7 @@
 
 import hashlib
 import hmac
+
 from config.database import Database
 
 
@@ -16,14 +17,12 @@ class UserModel:
 
     def hash_password(self, password):
 
-        password_hash = hashlib.sha256(
+        return hashlib.sha256(
             password.encode("utf-8")
         ).hexdigest()
 
-        return password_hash
-
     # =====================================
-    # VERIFIKASI LOGIN
+    # AUTENTIKASI PENGGUNA
     # =====================================
 
     def login(self, username, password):
@@ -49,14 +48,13 @@ class UserModel:
             if user is None:
                 return None
 
-            # Hash password yang dimasukkan pengguna
             input_hash = self.hash_password(password)
 
-            # Membandingkan hash password
             if hmac.compare_digest(
                 input_hash,
                 user["password_hash"]
             ):
+
                 return {
                     "id_user": user["id_user"],
                     "username": user["username"],

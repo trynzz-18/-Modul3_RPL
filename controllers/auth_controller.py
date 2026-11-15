@@ -10,13 +10,28 @@ class AuthController:
 
     def __init__(self):
 
-        # Inisialisasi Model dan View
+        # Inisialisasi Model dan Login View
         self.model = UserModel()
         self.view = LoginView()
+
+        # Menyimpan controller aplikasi buku
+        self.buku_controller = None
 
         # Menghubungkan tombol Login
         self.view.btn_login.configure(
             command=self.proses_login
+        )
+
+        # Enter untuk login
+        self.view.entry_password.bind(
+            "<Return>",
+            lambda event: self.proses_login()
+        )
+
+        # Menutup aplikasi ketika X Login ditekan
+        self.view.protocol(
+            "WM_DELETE_WINDOW",
+            self.tutup_aplikasi
         )
 
     # =====================================
@@ -25,11 +40,10 @@ class AuthController:
 
     def proses_login(self):
 
-        # Mengambil input dari View
         username = self.view.entry_username.get().strip()
         password = self.view.entry_password.get()
 
-        # Validasi form kosong
+        # Validasi input
         if not username or not password:
 
             messagebox.showwarning(
@@ -42,32 +56,13 @@ class AuthController:
 
         try:
 
-            # Verifikasi akun melalui Model
+            # Verifikasi melalui UserModel
             user = self.model.login(
                 username,
                 password
             )
 
-            if user:
-
-                messagebox.showinfo(
-                    "Login Berhasil",
-                    f"Selamat datang, {user['username']}!\n"
-                    f"Role: {user['role'].upper()}",
-                    parent=self.view
-                )
-
-                # Menutup jendela Login
-                self.view.destroy()
-
-                # Membuka aplikasi berdasarkan role pengguna
-                app_utama = BukuController(
-                    user_role=user['role']
-                )
-
-                app_utama.run()
-
-            else:
+            if user is None:
 
                 messagebox.showerror(
                     "Login Gagal",
@@ -78,6 +73,46 @@ class AuthController:
                 self.view.entry_password.delete(0, "end")
                 self.view.entry_password.focus_set()
 
+                return
+
+            # Validasi role
+            if user["role"] not in ("admin", "anggota"):
+
+                messagebox.showerror(
+                    "Akses Ditolak",
+                    "Role pengguna tidak dikenali!",
+                    parent=self.view
+                )
+
+                return
+
+            # Menampilkan pesan login berhasil
+            messagebox.showinfo(
+                "Login Berhasil",
+                f"Selamat datang, {user['username']}!\n"
+                f"Role: {user['role'].upper()}",
+                parent=self.view
+            )
+
+            # Menyembunyikan jendela Login
+            self.view.withdraw()
+
+            try:
+
+                # Membuka aplikasi sesuai role
+                self.buku_controller = BukuController(
+                    user_role=user["role"],
+                    master=self.view,
+                    on_logout=self.kembali_ke_login
+                )
+
+            except Exception:
+                self.view.deiconify()
+                self.view.lift()
+                self.view.focus_force()
+                self.buku_controller = None
+                raise
+
         except Exception as e:
 
             messagebox.showerror(
@@ -87,7 +122,35 @@ class AuthController:
             )
 
     # =====================================
-    # MENJALANKAN APLIKASI LOGIN
+    # KEMBALI KE LOGIN SETELAH LOGOUT
+    # =====================================
+
+    def kembali_ke_login(self):
+
+        # Membersihkan input login
+        self.view.entry_username.delete(0, "end")
+        self.view.entry_password.delete(0, "end")
+
+        # Menampilkan kembali halaman Login
+        self.view.deiconify()
+        self.view.lift()
+        self.view.focus_force()
+
+        self.view.entry_username.focus_set()
+
+        # Menghapus referensi controller sebelumnya
+        self.buku_controller = None
+
+    # =====================================
+    # MENUTUP APLIKASI
+    # =====================================
+
+    def tutup_aplikasi(self):
+
+        self.view.destroy()
+
+    # =====================================
+    # MENJALANKAN APLIKASI
     # =====================================
 
     def run(self):

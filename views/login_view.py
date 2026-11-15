@@ -1,24 +1,33 @@
+
 import tkinter as tk
-from tkinter import messagebox
+
+
 class LoginView(tk.Tk):
+
     def __init__(self):
         super().__init__()
+
         self.title("Login - Sistem Manajemen Perpustakaan")
         self.geometry("420x370")
         self.resizable(False, False)
         self.configure(bg="#f2f2f2")
+
+        # Frame utama
         frame_utama = tk.Frame(
             self,
             bg="#dedede",
             padx=30,
             pady=25
         )
+
         frame_utama.pack(
             fill="both",
             expand=True,
             padx=20,
             pady=20
         )
+
+        # Judul
         tk.Label(
             frame_utama,
             text="SISTEM PERPUSTAKAAN",
@@ -26,6 +35,7 @@ class LoginView(tk.Tk):
             bg="#dedede",
             fg="#24568b"
         ).pack(pady=(5, 8))
+
         tk.Label(
             frame_utama,
             text="Silakan login untuk melanjutkan",
@@ -33,6 +43,8 @@ class LoginView(tk.Tk):
             bg="#dedede",
             fg="#555555"
         ).pack(pady=(0, 25))
+
+        # Username
         tk.Label(
             frame_utama,
             text="Username",
@@ -52,6 +64,8 @@ class LoginView(tk.Tk):
             pady=(6, 18),
             ipady=7
         )
+
+        # Password
         tk.Label(
             frame_utama,
             text="Password",
@@ -73,6 +87,7 @@ class LoginView(tk.Tk):
             ipady=7
         )
 
+        # Tombol Login
         self.btn_login = tk.Button(
             frame_utama,
             text="LOGIN",
@@ -90,11 +105,4 @@ class LoginView(tk.Tk):
             ipady=8
         )
 
-        # Tekan Enter untuk login
-        self.entry_password.bind(
-            "<Return>",
-            lambda event: self.btn_login.invoke()
-        )
-
-        # Fokus awal pada username
         self.entry_username.focus_set()

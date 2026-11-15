@@ -55,20 +55,19 @@ class PlaceholderEntry(tk.Entry):
             self.placeholder_active = False
 
 
-class BukuView(tk.Tk):
+class BukuView(tk.Toplevel):
 
-    def __init__(self):
+    def __init__(self, master):
+        super().__init__(master)
 
-        super().__init__()
-
-        self.title("Sistem Manajemen Perpustakaan - Mode: ADMIN")
+        self.title("Sistem Manajemen Perpustakaan")
         self.geometry("980x560")
         self.resizable(False, False)
         self.configure(bg="#f2f2f2")
 
-        # =====================================
+        # =================================
         # FRAME UTAMA
-        # =====================================
+        # =================================
 
         frame_utama = tk.Frame(
             self,
@@ -82,9 +81,9 @@ class BukuView(tk.Tk):
             pady=8
         )
 
-        # =====================================
-        # PANEL KIRI - FORM DATA BUKU
-        # =====================================
+        # =================================
+        # PANEL KIRI - FORM BUKU
+        # =================================
 
         frame_form = tk.Frame(
             frame_utama,
@@ -156,7 +155,7 @@ class BukuView(tk.Tk):
             ipady=6
         )
 
-        # Tombol simpan
+        # Tombol Simpan
         self.btn_simpan = tk.Button(
             frame_form,
             text="Simpan Data",
@@ -176,7 +175,7 @@ class BukuView(tk.Tk):
             ipady=7
         )
 
-        # Tombol update
+        # Tombol Update
         self.btn_update = tk.Button(
             frame_form,
             text="Perbarui Data (Update)",
@@ -196,7 +195,7 @@ class BukuView(tk.Tk):
             ipady=7
         )
 
-        # Tombol hapus
+        # Tombol Delete
         self.btn_hapus = tk.Button(
             frame_form,
             text="Hapus Data (Delete)",
@@ -216,9 +215,29 @@ class BukuView(tk.Tk):
             ipady=7
         )
 
-        # =====================================
-        # PANEL KANAN - DAFTAR KOLEKSI BUKU
-        # =====================================
+        # Tombol Logout
+        self.btn_logout = tk.Button(
+            frame_form,
+            text="Logout",
+            font=("Arial", 11, "bold"),
+            bg="#6c757d",
+            fg="white",
+            activebackground="#565e64",
+            activeforeground="white",
+            relief="flat",
+            cursor="hand2"
+        )
+
+        self.btn_logout.pack(
+            fill="x",
+            padx=18,
+            pady=(15, 12),
+            ipady=7
+        )
+
+        # =================================
+        # PANEL KANAN - DAFTAR BUKU
+        # =================================
 
         frame_daftar = tk.Frame(
             frame_utama,
