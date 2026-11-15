@@ -22,7 +22,56 @@ class UserModel:
         ).hexdigest()
 
     # =====================================
-    # AUTENTIKASI PENGGUNA
+    # REGISTRASI PENGGUNA BARU
+    # =====================================
+
+    def register_user(self, username, password):
+
+        if not self.conn:
+            raise Exception("Koneksi database tidak tersedia!")
+
+        cursor = None
+
+        try:
+            cursor = self.conn.cursor()
+
+            # Mengubah password menjadi hash
+            password_hash = self.hash_password(password)
+
+            # Role pendaftaran otomatis anggota
+            query = """
+                INSERT INTO users
+                (username, password_hash, role)
+                VALUES (%s, %s, %s)
+            """
+
+            cursor.execute(
+                query,
+                (username, password_hash, "anggota")
+            )
+
+            self.conn.commit()
+
+            return cursor.rowcount > 0
+
+        except Exception as e:
+
+            self.conn.rollback()
+
+            # MySQL error 1062 = username duplikat
+            if getattr(e, "errno", None) == 1062:
+                raise ValueError(
+                    "Username sudah digunakan. Silakan pilih username lain."
+                )
+
+            raise Exception(f"Gagal melakukan registrasi: {e}")
+
+        finally:
+            if cursor:
+                cursor.close()
+
+    # =====================================
+    # AUTENTIKASI LOGIN
     # =====================================
 
     def login(self, username, password):
@@ -48,8 +97,10 @@ class UserModel:
             if user is None:
                 return None
 
+            # Hash password yang dimasukkan
             input_hash = self.hash_password(password)
 
+            # Membandingkan hash password
             if hmac.compare_digest(
                 input_hash,
                 user["password_hash"]
