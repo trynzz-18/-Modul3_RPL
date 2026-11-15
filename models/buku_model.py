@@ -1,36 +1,64 @@
+
 from config.database import Database
 
 
 class BukuModel:
+
     def __init__(self):
         self.db = Database()
         self.conn = self.db.get_connection()
         self.table_name = "buku"
 
-    # Membaca seluruh data buku
+    # =====================================
+    # MENAMPILKAN DATA BUKU AKTIF
+    # =====================================
+
     def get_all_buku(self):
-        if self.conn:
+
+        if not self.conn:
+            raise Exception("Koneksi database tidak tersedia!")
+
+        cursor = None
+
+        try:
             cursor = self.conn.cursor(dictionary=True)
 
-            query = f"SELECT * FROM {self.table_name}"
+            query = """
+                SELECT id_buku, judul, pengarang, penerbit, tahun_terbit
+                FROM buku
+                WHERE is_deleted = 0
+                ORDER BY id_buku ASC
+            """
+
             cursor.execute(query)
 
-            result = cursor.fetchall()
-            cursor.close()
+            return cursor.fetchall()
 
-            return result
+        except Exception as e:
+            raise Exception(f"Gagal mengambil data buku: {e}")
 
-        return []
+        finally:
+            if cursor:
+                cursor.close()
 
-    # Menambahkan data buku
+    # =====================================
+    # MENAMBAHKAN DATA BUKU
+    # =====================================
+
     def create_buku(self, judul, pengarang, penerbit, tahun_terbit):
-        if self.conn:
+
+        if not self.conn:
+            raise Exception("Koneksi database tidak tersedia!")
+
+        cursor = None
+
+        try:
             cursor = self.conn.cursor()
 
-            query = f"""
-                INSERT INTO {self.table_name}
-                (judul, pengarang, penerbit, tahun_terbit)
-                VALUES (%s, %s, %s, %s)
+            query = """
+                INSERT INTO buku
+                (judul, pengarang, penerbit, tahun_terbit, is_deleted)
+                VALUES (%s, %s, %s, %s, 0)
             """
 
             cursor.execute(
@@ -39,55 +67,101 @@ class BukuModel:
             )
 
             self.conn.commit()
-            berhasil = cursor.rowcount > 0
-            cursor.close()
 
-            return berhasil
+            return cursor.rowcount > 0
 
-        return False
+        except Exception as e:
+            self.conn.rollback()
+            raise Exception(f"Gagal menyimpan data buku: {e}")
 
-    # Mengubah data buku
-    def update_buku(self, id_buku, judul, penulis, tahun_terbit):
-        if self.conn:
+        finally:
+            if cursor:
+                cursor.close()
+
+    # =====================================
+    # MEMPERBARUI DATA BUKU
+    # =====================================
+
+    def update_buku(self, id_buku, judul, pengarang, tahun_terbit):
+
+        if not self.conn:
+            raise Exception("Koneksi database tidak tersedia!")
+
+        cursor = None
+
+        try:
             cursor = self.conn.cursor()
 
-            query = f"""
-                UPDATE {self.table_name}
+            query = """
+                UPDATE buku
                 SET judul = %s,
                     pengarang = %s,
                     tahun_terbit = %s
                 WHERE id_buku = %s
+                AND is_deleted = 0
             """
 
             cursor.execute(
                 query,
-                (judul, penulis, tahun_terbit, id_buku)
+                (judul, pengarang, tahun_terbit, id_buku)
             )
 
             self.conn.commit()
-            berhasil = cursor.rowcount > 0
-            cursor.close()
 
-            return berhasil
+            # Memastikan buku masih tersedia
+            cursor.execute(
+                """
+                SELECT id_buku
+                FROM buku
+                WHERE id_buku = %s
+                AND is_deleted = 0
+                """,
+                (id_buku,)
+            )
 
-        return False
+            return cursor.fetchone() is not None
 
-    # Menghapus data buku
+        except Exception as e:
+            self.conn.rollback()
+            raise Exception(f"Gagal memperbarui data buku: {e}")
+
+        finally:
+            if cursor:
+                cursor.close()
+
+    # =====================================
+    # MENGHAPUS DATA BUKU (SOFT DELETE)
+    # =====================================
+
     def delete_buku(self, id_buku):
-        if self.conn:
+
+        if not self.conn:
+            raise Exception("Koneksi database tidak tersedia!")
+
+        cursor = None
+
+        try:
             cursor = self.conn.cursor()
 
-            query = f"""
-                DELETE FROM {self.table_name}
+            query = """
+                UPDATE buku
+                SET is_deleted = 1
                 WHERE id_buku = %s
+                AND is_deleted = 0
             """
 
             cursor.execute(query, (id_buku,))
-            self.conn.commit()
 
             berhasil = cursor.rowcount > 0
-            cursor.close()
+
+            self.conn.commit()
 
             return berhasil
 
-        return False
+        except Exception as e:
+            self.conn.rollback()
+            raise Exception(f"Gagal menghapus data buku: {e}")
+
+        finally:
+            if cursor:
+                cursor.close()
